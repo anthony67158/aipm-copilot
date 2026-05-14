@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "prisma generate",
     "db:deploy": "prisma migrate deploy",
+    "railway:start": "prisma migrate deploy && next start",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init"
   },
