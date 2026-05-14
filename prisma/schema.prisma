@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String              @id
+  email              String?             @unique
+  phone              String?             @unique
+  nickname           String?             @unique
+  passwordHash       String?
+  avatarUrl          String?
+  authProvider       String              @default("anonymous")
+  status             String              @default("ACTIVE")
+  createdAt          DateTime            @default(now())
+  lastLoginAt        DateTime?
+  updatedAt          DateTime            @updatedAt
+  analysisSessions   AnalysisSession[]
+  resumeVersions     ResumeVersion[]
+  exportJobs         ExportJob[]
+  paymentOrders      PaymentOrder[]
+  entitlementLedgers EntitlementLedger[]
+
+  @@index([createdAt])
+}
+
+model AnalysisSession {
+  id                  String              @id
+  userId              String?
+  status              String
+  resumeText          String
+  resumeFileUrl       String?
+  jobDescriptionText  String
+  jobTitle            String?
+  jobCategory         String?
+  applicationType     String?
+  focusModules        Json
+  failureReason       String?
+  userIdentity        String?
+  currentRole         String?
+  roleSpecialty       String?
+  yearsOfExperience   Int?
+  targetCompany       String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User?               @relation(fields: [userId], references: [id])
+  diagnosisResult     DiagnosisResult?
+  optimizationResult  OptimizationResult?
+  decisionReport      DecisionReport?
+  interviewQuestions  InterviewQuestion[]
+  resumeVersions      ResumeVersion[]
+  paymentOrders       PaymentOrder[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([jobCategory])
+}
+
+model DiagnosisResult {
+  id              String          @id
+  sessionId       String          @unique
+  matchScore      Int
+  summary         String
+  matchedKeywords Json
+  missingKeywords Json
+  risks           Json
+  recommendations Json
+  modelVersion    String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  session         AnalysisSession @relation(fields: [sessionId], references: [id])
+
+  @@index([matchScore])
+}
+
+model OptimizationResult {
+  id                    String          @id
+  sessionId             String          @unique
+  beforeScore           Int?
+  afterScore            Int?
+  rewriteMode           String          @default("balanced")
+  selectedModules       Json
+  optimizedSections     Json
+  fullOptimizedResumeText String
+  modelVersion          String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  session               AnalysisSession @relation(fields: [sessionId], references: [id])
+
+  @@index([afterScore])
+}
+
+model DecisionReport {
+  id                String          @id
+  sessionId         String          @unique
+  recommendation    String
+  recommendationLabel String
+  overallMatchScore Int
+  oneLiner          String
+  dimensionsJson    Json
+  interviewPredJson Json
+  twoWeekPlanJson   Json
+  modelVersion      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  session           AnalysisSession @relation(fields: [sessionId], references: [id])
+
+  @@index([recommendation])
+  @@index([overallMatchScore])
+}
+
+model InterviewQuestion {
+  id              String          @id
+  sessionId       String
+  category        String
+  question        String
+  whyAsked        String
+  answerFramework String
+  sampleAnswer    String          @default("")
+  keyPoints       Json
+  pitfalls        Json
+  createdAt       DateTime        @default(now())
+  session         AnalysisSession @relation(fields: [sessionId], references: [id])
+
+  @@index([sessionId])
+  @@index([category])
+}
+
+model ResumeVersion {
+  id          String          @id
+  userId      String
+  sessionId   String
+  title       String
+  jobTitle    String?
+  jobCategory String?
+  sourceType  String          @default("optimized")
+  resumeText  String
+  isArchived  Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id])
+  session     AnalysisSession @relation(fields: [sessionId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([sessionId])
+  @@index([isArchived])
+}
+
+model ExportJob {
+  id            String   @id
+  userId        String
+  sourceType    String
+  sourceId      String
+  format        String
+  status        String
+  fileUrl       String?
+  failureReason String?
+  expiredAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([sourceType, sourceId])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model PaymentOrder {
+  id          String           @id
+  userId      String
+  sessionId   String?
+  productCode String
+  productName String
+  currency    String           @default("CNY")
+  amountTotal Int
+  amountPaid  Int              @default(0)
+  status      String
+  paidAt      DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation(fields: [userId], references: [id])
+  session     AnalysisSession? @relation(fields: [sessionId], references: [id])
+  records     PaymentRecord[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([sessionId])
+}
+
+model PaymentRecord {
+  id             String       @id
+  orderId        String
+  channel        String
+  channelTradeNo String?
+  eventType      String
+  eventStatus    String
+  rawPayload     Json
+  createdAt      DateTime     @default(now())
+  order          PaymentOrder @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, createdAt(sort: Desc)])
+  @@index([channelTradeNo])
+}
+
+model EntitlementLedger {
+  id              String   @id
+  userId          String
+  sourceType      String
+  sourceId        String?
+  entitlementCode String
+  delta           Int
+  balanceAfter    Int
+  remark          String?
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([entitlementCode])
+}
