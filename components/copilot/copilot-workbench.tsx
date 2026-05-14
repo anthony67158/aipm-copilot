@@ -665,6 +665,16 @@ export function CopilotWorkbench() {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch("/api/v1/uploads/resume-pdf", { method: "POST", body: formData, signal });
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) {
+        const responseText = (await res.text()).trim();
+        throw new Error(
+          responseText.includes("Server")
+            ? "PDF 上传暂时失败，请改用粘贴简历内容，或上传可复制文本的 PDF。"
+            : responseText || "PDF 上传暂时失败，请稍后重试。"
+        );
+      }
+
       const payload = await res.json();
       if (!res.ok || !payload.success) throw new Error(payload.error?.message ?? "PDF 解析失败");
       const data = payload.data as UploadResumePdfResponse;

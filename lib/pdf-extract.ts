@@ -12,6 +12,11 @@ export type PdfExtractResult = {
   extractionMethod: "text" | "ocr";
 };
 
+export const PDF_EXTRACTION_ERRORS = {
+  noExtractableText: "NO_EXTRACTABLE_TEXT",
+  ocrUnavailable: "OCR_UNAVAILABLE_ON_PLATFORM",
+} as const;
+
 export async function extractResumePdf(fileName: string, buffer: Buffer): Promise<PdfExtractResult> {
   const tempFilePath = path.join(
     os.tmpdir(),
@@ -61,7 +66,7 @@ export async function extractResumePdf(fileName: string, buffer: Buffer): Promis
       }
     }
 
-    throw new Error("NO_EXTRACTABLE_TEXT");
+    throw new Error(PDF_EXTRACTION_ERRORS.noExtractableText);
   } finally {
     await fs.unlink(tempFilePath).catch(() => undefined);
   }
@@ -80,6 +85,10 @@ async function runPdfTextExtraction(_filePath: string, buffer: Buffer) {
 }
 
 async function runPdfOcrExtraction(filePath: string) {
+  if (process.platform !== "darwin") {
+    throw new Error(PDF_EXTRACTION_ERRORS.ocrUnavailable);
+  }
+
   const swiftScriptPath = path.join(process.cwd(), "scripts", "ocr_pdf.swift");
   const { stdout } = await execFileAsync("swift", [swiftScriptPath, filePath], {
     cwd: process.cwd(),

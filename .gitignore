@@ -9,3 +9,5 @@ tmp*.pdf
 prisma/dev.db
 prisma/dev.db-journal
 uploads/
+!app/api/v1/uploads/
+!app/api/v1/uploads/**
