@@ -39,7 +39,7 @@ type ChatJSONOptions = {
 function getLLMConfig() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const baseUrl = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
-  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  const model = process.env.OPENAI_MODEL || "qwen3.5-plus-2026-02-15";
   const fastModel = process.env.OPENAI_FAST_MODEL || model;
   const qualityModel = process.env.OPENAI_QUALITY_MODEL || process.env.OPENAI_REASONING_MODEL || model;
   return {
